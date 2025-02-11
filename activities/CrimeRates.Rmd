@@ -5,10 +5,18 @@ title: "Crime Rates"
 Follow along with the demo to learn how to calculate crime rates using R and the Tidyverse. We'll also introduce a new library, janitor, which helps make column names easier to work with. You should get started by loading the tidyverse in a new R block, then install and load janitor.
 
 ### Task 1: Load the tidyverse and install and load janitor
+```{r}
+library(tidyverse)
+install.packages("janitor")
+library(janitor)
+```
 
 
 
 ### Task 2: Load the crime dataset from https://raw.githubusercontent.com/dwillis/jour405/refs/heads/main/data/md_annual_crime.csv
+```{r}
+crimes <- read_csv("https://raw.githubusercontent.com/dwillis/jour405/refs/heads/main/data/md_annual_crime.csv") %>% clean_names()
+```
 
 
 
@@ -17,10 +25,16 @@ Follow along with the demo to learn how to calculate crime rates using R and the
 
 
 ### Task 4: Calculate the total crime rate for each year (picking our unit!)
+```{r}
+crimes %>% mutate(total_rate = grand_total/population * 10000)
+```
 
 
 
 ### Task 5: Calculate the violent and property crime rates for each year (same unit)
+```{r}
+crimes_with_rate <- crimes %>% mutate(violent_rate = violent_crime_total/population * 10000, property_rate = property_crime_total/population * 10000)
+```
 
 
 
@@ -28,6 +42,7 @@ Follow along with the demo to learn how to calculate crime rates using R and the
 
 Write a few sentences about what you found in the data. What years had the highest crime rates? What years had the lowest crime rates? Does the pattern match your expectations?
 
+The lowest crime rates were in more recent years, while higher crime rights were in older years. This pattern does not match what I thought because the rhetoric that we hear is that crime is getting worse. However, I am not surprised that crime was low in 2020 because people were isolated for most of that year. 
 
 
 
