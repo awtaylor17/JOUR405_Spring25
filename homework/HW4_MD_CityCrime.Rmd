@@ -68,3 +68,34 @@ In 2020, Ocean City had a violent crime rate of about 240. Right behind it was B
 ### Task 9: Save Your Work and Put it on GitHub
 
 Save this notebook, then commit it to your local repository. Push the changes to your GitHub repository and submit the URL for this file in ELMS.
+
+### Task 10: (Homework 5)
+
+Your task will be to take the violent crime rates for 2020 and do three things:
+
+10A - Using the 2020 violent crime rate, calculate the percentiles using `ntile()`. Save the results to a new dataframe called `md_cities_percentiles`. How many cities are above the 90th percentile?
+
+```{r}
+md_cities_percentiles <- md_cities_change %>% mutate(percentile_V_2020 = ntile(violent_rate_2020, 100))
+```
+
+There are 10 cities above the 90th percentile. 
+
+
+10B - Calculate the Interquartile Range of the 2020 violent crime rate using `summarize()` and R's `IQR()` function. The syntax is similar to how `mean()` works.
+
+```{r}
+md_cities_percentiles %>%
+  summarize(IQR_V_2020 = IQR(violent_rate_2020))
+```
+
+
+
+10C - Do the results change your best story idea from the previous assignment? Why or why not?
+ 
+For reference, the IQR I calculated was 41.98895. 
+
+I would say this result does not change my best story idea from homework 4. While I'm not sure what a "typical" IQR for this type of data looks like, I'm not surprised that there are about 41 different values in the middle 50% of the data. Violent crime rates change from place to place, so I would think it would be natural (and not very newsworthy) to have a little bit of spread in the middle values of the data. 
+
+
+
