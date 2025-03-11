@@ -1,0 +1,54 @@
+---
+title: "Midterm1_StudyGuide"
+output: html_document
+---
+
+
+------ Week 1 ------
+Square root - sqrt()
+Load a CSV file - read_csv("")
+
+------ Week 2 ------
+Percentage change -  (New - Old)/Old * 100
+mutate(new_column_name = _____) - adds a column to a new or the same dataframe
+summarize() - summarizes data based on input
+mean() - finds the mean, used in summarize()
+median() - finds the median, used in summarize()
+min() - finds the minimum value, used in summarize()
+max() - finds the maximum, used in summarize()
+
+------ Week 3 ------
+clean_names() - from the janitor library, it makes names of dataframes easier to access
+keep units the same when calculating rates
+group_by() - groups by a certain category
+sum() - the sum of all values in specified category
+arrange() - arranged in a certain order, add desc() for descending order, ascending order you just use the function
+ntile() - creates percitle scale, must specify category and the base of the percentile, ex: ntile(total_aces, 100)
+remember to create the "per capita" for your rates. The size depends on how big the data is. Generarlly, stick to a value in the same number of zeros as most of your data.
+IQR() - calculates IQR
+
+
+------ Week 4 ------
+sd() - finds standard deviation
+histogram - applied after pipe character:
+  ggplot() +
+  geom_histogram(aes(x = _______), binwidth = ___________) +
+  geom_vline(aes(xintercept = mean(______)), color = "red", linetype = "dashed", size = 1) +
+  geom_vline(aes(xintercept = mean(______) - sd(______)), color = "blue", linetype = "dashed", size = 1) +
+  geom_vline(aes(xintercept = mean(______) + sd(______)), color = "blue", linetype = "dashed", size = 1)
+
+------ Week 5 ------
+Central limit theorem - the sampling distribution of the mean of any independent, random variable will be normal or nearly normal, if the sample size is large enough.
+tibble() - creates random data, ex: tibble(age = sample(18:80, 1000, replace = TRUE)
+sample_n() - samples a random number of said data, put sample size in the parentheses
+
+------ Week 6 ------
+cor() - calculations correlation coefficient, ex: cor(value1, value2, method = "pearson")
+scatterplot with line of best fit:
+  ggplot() +
+  geom_point(aes(x=value1, y=value2)) +
+  geom_smooth(aes(x=value1, y=value2), method = "lm")
+To add labels to your data points add this to the end of your code:
+  geom_text(aes(x=value1, y=value2, label=label_name), size = ______)
+To add a title to the scatterplot, add this to end of your code:
+ ggtitle("title_name")
