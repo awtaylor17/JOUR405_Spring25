@@ -1,0 +1,57 @@
+---
+title: "final_project"
+output: html_document
+---
+
+Getting started:
+```{r}
+library("tidyverse")
+```
+
+
+Collecting unemployment rate data:
+```{r}
+county_urate <- read_csv("https://raw.githubusercontent.com/awtaylor17/JOUR405_Spring25/refs/heads/main/project/JOUR405_URateData_Compiled.csv")
+```
+To create this file, I copied the unemployment rate data of each county for October of 2024 from the BLS website into a Google Sheet. From there, I downloaded the Google Sheet as a CSV file and uploaded it to Github. I got the "raw" link to the data and used that to import the data into R.
+
+This data set has two columns: one that lists the county and one that lists the unemployment rate for October of 2024. Because this data set is pretty small and straight to the point, I don't think one particular column is more useful than the other. 
+
+
+Collecting election data:
+```{r}
+election_data <- read_csv("https://raw.githubusercontent.com/dwillis/jour405/refs/heads/main/data/md_pres_county.csv")
+```
+Data courtesy of Derek Willis. (Thanks!)
+
+This data set lists how many people in each Maryland county voted for each presidential candidate in the 2024 presidential election. It lists every major candidate, including Chase Oliver, Jill Stein and RFK Jr. However, the only data we will need for this project is the number of people who voted for Kamala Harris and the number of people who voted for Donald Trump. I may also need to use the "total" column if I want to calculate the percentage of each county who voted for a particular candidate. 
+
+Collecting census data:
+
+I requested an API key from the website listed in the article you sent me twice (roughly one day apart) to be sent to my UMD email and I have not yet received the API key. Part of me is worried because it said that it should arrive in a few minutes, but it has been a few days. Do you know I should go about resolving this issue? Should I try requesting one again or should I wait to see if my requests go through?
+
+In the meantime here is the code that I think should get me the data I need. Because I don't have the API I haven't run or tested this code to make sure it works. 
+
+
+```{r}
+library(tidycensus)
+census_api_key("YOUR KEY HERE", install=TRUE)
+
+#how I'd find the variables I need. 
+lv <- load_variables(2024, "acs5", cache = TRUE)
+view(lv)
+
+#(hypothetical) code to retrieve ACS data on race and income from the Census Bureau
+md_race_2024 <- get_acs(geography = "county",
+              variables = c("INSERT RACE VARIABLE HERE"),
+              state = "MD",
+              year = 2024)
+
+md_income_2024 <- get_acs(geography = "county",
+              variables = c("INSERT INCOME VARIABLE HERE"),
+              state = "MD",
+              year = 2024)
+
+
+```
+
