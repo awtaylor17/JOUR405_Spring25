@@ -3,13 +3,23 @@ title: "final_project"
 output: html_document
 ---
 
-The tests I could run:
  
-The first test I know I could so is a correlation test. In other words, I would want to see how correlated the amount of people who voted for Trump is with unemployment rate. Besides that test, I am not sure what other tests I could run. Part of me thinks that I could do some sort of hypothesis test. However, the t-test that we learned about in class analyzes the averages of the two variables, which I don't think would work with the data I have. I don't think an ANOVA test or chi-squared test would work either because the ANOVA test deals with groups, which we don't have, and the chi-squared test requires expected values, which we also don't have. Do you know of any hypothesis tests that would work?
+I was able to run correlation tests and linear regressions, as well as create scatterplots for all of the variables I wanted to.
+ 
+First, I tested the correlation between the number of people who voted for Trump and the unemployment rate. While doing so, I realized I had to merge the data frames together in order to run the tests, so I googled how to do that and found out I could use the merge() and rename() functions. I also realized that, for the merge() function to work, I had the columns I wanted to base the merge off of had to have the same names in the cells. So, because the I created the unemployment rate CSV on Google Sheets, I changed the cell names manually and updated the link I used. However, once I visualized the data on a scatterplot, I realized that only using the amount of people who voted for Trump wouldn't be a good measure, because each county is sized differently. So, I found the percent of each county that voted for Trump and used that in my tests. Based on the tests, I can say that there isn't much correlation between the percent of the county that voted for Trump and its unemployment rate. This is because the correlation coefficient is low, and the results of the linear regression suggests that the model that was created is not a good fit (high p-value and low adjusted R-squared). One interesting finding, though, is that in 14 of the 24 Maryland counties, more than half of the population voted for Trump, yet because of our electoral college system, Maryland went for Harris.
+ 
+What follows are the tests for each demographic variable and the percent of each county that voted for Trump. In addition to percentage of white people and income, I also looked at the median age in the county.
 
-Additionaly, and slightly unrelated, I was able to access the census data and create the dataframes that I need. I explain my process for doing so, and the roadbumps, at the end of this file. 
+The first demographic variable I tested was the percentage of white people in a county. Like for unemployment rate, I had to merge the variable's data frame with the data frame containing the percentage of each county that voted for Trump. Where I came into an issue, is that I had to manually, using R, rename each cell to match what it was named in the other dataframe. While it ended up working, it was annoying could leave room for error. Do you know of a quicker way to rename cells? When I ran the tests, there was a strong correlation between the percentage of white people in each county and the percentage of white people that voted for trump. To put it simply, the whiter the county, and higher percentage of that county voted for Trump. I came to this conclusion because the correlation coefficient is 0.9, the p-value for the regression model is very close to zero and the adjusted R-squared value is 0.8.
+
+The second demographic variable I tested was income. Based on my analysis, income is not the strongest predictor of what percentage of a county will vote for Trump. The regression model is significant -- it has a p-value of 0.03 -- but it's adjusted R-squared is low, at 0.1586. It's correlation coefficient is -0.4, which shows there is some correlation, but not a strong correlation.
+
+The last demographic variable I tested was median age. These results were similar to the results for income. The regression model is just barely significant (0.045), and it has a low adjusted R-Squared value (0.1325). It's correlation coefficient is 0.4, so there is some correlation, but it's not that strong. 
 
 
+ 
+
+### Getting started + collecting data
 
 Getting started:
 ```{r}
@@ -20,7 +30,7 @@ library(tidycensus)
 
 Collecting unemployment rate data:
 ```{r}
-county_urate <- read_csv("https://raw.githubusercontent.com/awtaylor17/JOUR405_Spring25/refs/heads/main/project/JOUR405_URateData_Compiled.csv")
+county_urate <- read_csv("https://raw.githubusercontent.com/awtaylor17/JOUR405_Spring25/refs/heads/main/project/JOUR405_URateDate_Compiled2.csv")
 ```
 To create this file, I copied the unemployment rate data of each county for October of 2024 from the BLS website into a Google Sheet. From there, I downloaded the Google Sheet as a CSV file and uploaded it to Github. I got the "raw" link to the data and used that to import the data into R.
 
@@ -41,7 +51,7 @@ Collecting census data:
 ```{r}
 Sys.getenv("CENSUS_API_KEY")
 
-#how I'd find the variables I need. 
+#how I'd find the variables I need.
 lv <- load_variables(2023, "acs5", cache = TRUE)
 
 #(hypothetical) code to retrieve ACS data on race and income from the Census Bureau
@@ -52,13 +62,289 @@ md_white_2023 <- get_acs(geography = "county",
               state = "MD",
               year = 2023)
 
+#retrieving the amount of estimated income in each county
 md_income_2023 <- get_acs(geography = "county",
               variables = c("B07411_001"),
               state = "MD",
               year = 2023)
 
+#retrieving the total population in each county
+md_racetotal_2023 <- get_acs(geography = "county",
+              variables = c("B02001_001"),
+              state = "MD",
+              year = 2023)
+
+#retrieving the median age in each county
+md_medianage_2023 <- get_acs(geography = "county",
+              variables = c("B01002_001"),
+              state = "MD",
+              year = 2023)
 ```
 
-One important thing to note is that the 2024 ACS data is not available yet, so I will have to use data from the 2023 ACS, which could be less accurate. Do you think I should still include the 2023 data to get a ballpark answer, or should I not include it because it could be inaccurate?
+One important thing to note is that the 2024 ACS data is not available yet, so I will have to use data from the 2023 ACS.
 
-Also, when I called up the general "race" variable, its output was just a number that was not broken down into categories, as I expected. So, I decided to pull the "white alone" variable because that is the race I am ultimately trying to analyze, since my hypothesis is that more white people voted for Trump.  
+Also, when I called up the general "race" variable, its output was just a number that was not broken down into categories, as I expected. So, I decided to pull the "white alone" variable because that is the race I am ultimately trying to analyze, since my hypothesis is that more white people voted for Trump.
+
+### Original correlation test
+
+Setting up original correlation test:
+```{r}
+#rename jurisdiction column to match with the other data set
+
+election_data <- election_data %>%
+  rename(
+    County = jurisdiction
+  )
+
+#merge columns to make it easier to analyze
+
+u_rate_trump <- merge(county_urate, election_data, by = "County")
+```
+
+Running original correlation test:
+```{r}
+u_rate_trump %>% summarize(cor(U_Rate, trump, method = "pearson"))
+```
+Visualizing original correlation:
+```{r}
+u_rate_trump %>% 
+  ggplot() +
+  geom_point(aes(x=trump, y=U_Rate)) +
+  geom_smooth(aes(x=trump, y=U_Rate), method = "lm") +
+  geom_text(aes(x=trump, y=U_Rate, label=County), size = 3)
+
+```
+### Trump percent correlation test
+
+Setting up trump percent correlation test:
+```{r}
+u_rate_trump <- u_rate_trump %>% 
+  mutate(
+    trump_pct = trump/total * 100
+  )
+```
+
+Running trump percent correlation test:
+```{r}
+u_rate_trump %>% summarize(cor(U_Rate, trump_pct, method = "pearson"))
+```
+Visualizing trump percent correlation test:
+```{r}
+u_rate_trump %>% 
+  ggplot() +
+  geom_point(aes(x=trump_pct, y=U_Rate)) +
+  geom_smooth(aes(x=trump_pct, y=U_Rate), method = "lm") +
+  geom_text(aes(x=trump_pct, y=U_Rate, label=County), size = 3)
+```
+### Trump percent regression model
+
+Create linear regression model using the trump percent
+```{r}
+#load needed things
+knitr::opts_chunk$set(echo = TRUE)
+options(scipen = 999)
+
+model <- lm(`trump_pct` ~ `U_Rate`, data = u_rate_trump)
+
+summary(model)
+```
+### Demographic analysis - percent white and trump percent
+
+Merging totals and creating percentage of white population
+```{r}
+md_white_2023_totals <- merge(md_white_2023, md_racetotal_2023, by = "NAME")
+
+md_white_2023_totals <- md_white_2023_totals %>% mutate(
+  white_pct = estimate.x/estimate.y * 100
+)
+```
+
+
+Change the name of dataframe to match the trump u-rate dataframe
+```{r}
+#rename counties so they can merge
+
+md_white_2023_totals[1,1] <- "Allegany"
+md_white_2023_totals[2,1] <- "Anne Arundel"
+md_white_2023_totals[3,1] <- "Baltimore City"
+md_white_2023_totals[4,1] <- "Baltimore County"
+md_white_2023_totals[5,1] <- "Calvert"
+md_white_2023_totals[6,1] <- "Caroline"
+md_white_2023_totals[7,1] <- "Carroll"
+md_white_2023_totals[8,1] <- "Cecil"
+md_white_2023_totals[9,1] <- "Charles"
+md_white_2023_totals[10,1] <- "Dorchester"
+md_white_2023_totals[11,1] <- "Frederick"
+md_white_2023_totals[12,1] <- "Garrett"
+md_white_2023_totals[13,1] <- "Harford"
+md_white_2023_totals[14,1] <- "Howard"
+md_white_2023_totals[15,1] <- "Kent"
+md_white_2023_totals[16,1] <- "Montgomery"
+md_white_2023_totals[17,1] <- "Prince George's"
+md_white_2023_totals[18,1] <- "Queen Anne's"
+md_white_2023_totals[19,1] <- "Somerset"
+md_white_2023_totals[20,1] <- "Saint Mary's"
+md_white_2023_totals[21,1] <- "Talbot"
+md_white_2023_totals[22,1] <- "Washington"
+md_white_2023_totals[23,1] <- "Wicomico"
+md_white_2023_totals[24,1] <- "Worcester"
+
+# rename column title
+md_white_2023_totals <- md_white_2023_totals %>%
+  rename(
+    County = NAME
+  )
+```
+
+Merge with trump dataframe:
+```{r}
+white_v_trump <- merge(md_white_2023_totals, u_rate_trump, by = "County")
+```
+
+Determine and visualize trump white correlation:
+```{r}
+#calculate correlation
+white_v_trump %>% summarize(cor(white_pct, trump_pct, method = "pearson"))
+
+#visualize correlation
+white_v_trump %>% 
+  ggplot() +
+  geom_point(aes(x=trump_pct, y=white_pct)) +
+  geom_smooth(aes(x=trump_pct, y=white_pct), method = "lm") +
+  geom_text(aes(x=trump_pct, y=white_pct, label=County), size = 3)
+```
+Create a linear regression model for trump and white percent:
+```{r}
+model <- lm(`trump_pct` ~ `white_pct`, data = white_v_trump)
+
+summary(model)
+```
+### Demographic analysis - percent income and trump percent
+
+Change the name of the counties to make it easier to merge:
+```{r}
+md_income_2023[1,2] <- "Allegany"
+md_income_2023[2,2] <- "Anne Arundel"
+md_income_2023[3,2] <- "Baltimore County"
+md_income_2023[4,2] <- "Calvert"
+md_income_2023[5,2] <- "Caroline"
+md_income_2023[6,2] <- "Carroll"
+md_income_2023[7,2] <- "Cecil"
+md_income_2023[8,2] <- "Charles"
+md_income_2023[9,2] <- "Dorchester"
+md_income_2023[10,2] <- "Frederick"
+md_income_2023[11,2] <- "Garrett"
+md_income_2023[12,2] <- "Harford"
+md_income_2023[13,2] <- "Howard"
+md_income_2023[14,2] <- "Kent"
+md_income_2023[15,2] <- "Montgomery"
+md_income_2023[16,2] <- "Prince George's"
+md_income_2023[17,2] <- "Queen Anne's"
+md_income_2023[18,2] <- "Saint Mary's"
+md_income_2023[19,2] <- "Somerset"
+md_income_2023[20,2] <- "Talbot"
+md_income_2023[21,2] <- "Washington"
+md_income_2023[22,2] <- "Wicomico"
+md_income_2023[23,2] <- "Worcester"
+md_income_2023[24,2] <- "Baltimore City"
+
+# rename column titles
+md_income_2023 <- md_income_2023 %>%
+  rename(
+    County = NAME,
+    income = estimate
+  )
+
+```
+
+Merge income and trump pct:
+```{r}
+income_v_trump <- merge(
+  u_rate_trump, md_income_2023, by = "County"
+)
+```
+
+Determine and visualize trump income correlation:
+```{r}
+#calculate correlation
+income_v_trump %>% summarize(cor(income, trump_pct, method = "pearson"))
+
+#visualize correlation
+income_v_trump %>% 
+  ggplot() +
+  geom_point(aes(x=trump_pct, y=income)) +
+  geom_smooth(aes(x=trump_pct, y=income), method = "lm") +
+  geom_text(aes(x=trump_pct, y=income, label=County), size = 3)
+```
+
+Create linear regression model for income and trump:
+```{r}
+model <- lm(`trump_pct` ~ `income`, data = income_v_trump)
+
+summary(model)
+```
+### Demographic analysis - median age and trump percent
+
+Change the name of the counties to make it easier to merge:
+```{r}
+md_medianage_2023[1,2] <- "Allegany"
+md_medianage_2023[2,2] <- "Anne Arundel"
+md_medianage_2023[3,2] <- "Baltimore County"
+md_medianage_2023[4,2] <- "Calvert"
+md_medianage_2023[5,2] <- "Caroline"
+md_medianage_2023[6,2] <- "Carroll"
+md_medianage_2023[7,2] <- "Cecil"
+md_medianage_2023[8,2] <- "Charles"
+md_medianage_2023[9,2] <- "Dorchester"
+md_medianage_2023[10,2] <- "Frederick"
+md_medianage_2023[11,2] <- "Garrett"
+md_medianage_2023[12,2] <- "Harford"
+md_medianage_2023[13,2] <- "Howard"
+md_medianage_2023[14,2] <- "Kent"
+md_medianage_2023[15,2] <- "Montgomery"
+md_medianage_2023[16,2] <- "Prince George's"
+md_medianage_2023[17,2] <- "Queen Anne's"
+md_medianage_2023[18,2] <- "Saint Mary's"
+md_medianage_2023[19,2] <- "Somerset"
+md_medianage_2023[20,2] <- "Talbot"
+md_medianage_2023[21,2] <- "Washington"
+md_medianage_2023[22,2] <- "Wicomico"
+md_medianage_2023[23,2] <- "Worcester"
+md_medianage_2023[24,2] <- "Baltimore City"
+
+# rename column titles
+md_medianage_2023 <- md_medianage_2023 %>%
+  rename(
+    County = NAME,
+    median_age = estimate
+  )
+
+```
+
+
+Merge age and trump pct:
+```{r}
+age_v_trump <- merge(
+  u_rate_trump, md_medianage_2023, by = "County"
+)
+```
+
+Determine and visualize trump age correlation:
+```{r}
+#calculate correlation
+age_v_trump %>% summarize(cor(median_age, trump_pct, method = "pearson"))
+
+#visualize correlation
+age_v_trump %>% 
+  ggplot() +
+  geom_point(aes(x=trump_pct, y=median_age)) +
+  geom_smooth(aes(x=trump_pct, y=median_age), method = "lm") +
+  geom_text(aes(x=trump_pct, y=median_age, label=County), size = 3)
+```
+
+Create linear regression model for age and trump:
+```{r}
+model <- lm(`trump_pct` ~ `median_age`, data = age_v_trump)
+
+summary(model)
+```
