@@ -79,6 +79,20 @@ md_medianage_2023 <- get_acs(geography = "county",
               variables = c("B01002_001"),
               state = "MD",
               year = 2023)
+
+#retrieving the number of male in each county
+md_male_2023 <- get_acs(geography = "county",
+              variables = c("B01001_002"),
+              state = "MD",
+              year = 2023)
+
+#retrieving the total number of people in each county
+md_totalgender_2023 <- get_acs(geography = "county",
+              variables = c("B01001_001"),
+              state = "MD",
+              year = 2023)
+
+
 ```
 
 One important thing to note is that the 2024 ACS data is not available yet, so I will have to use data from the 2023 ACS.
@@ -348,3 +362,137 @@ model <- lm(`trump_pct` ~ `median_age`, data = age_v_trump)
 
 summary(model)
 ```
+### Demographic analysis - gender and trump percent
+
+Change the name of the counties to make it easier to merge:
+```{r}
+#merge and create male percent
+md_male_2023 <- merge(
+  md_male_2023, md_totalgender_2023, by = "GEOID"
+)
+md_male_2023 <- md_male_2023 %>%
+  mutate(
+    male_pct = estimate.x/estimate.y
+  )
+
+md_male_2023 <- md_male_2023 |> 
+  mutate(NAME.x = str_replace(NAME.x, " County, Maryland", "")) |> 
+  mutate(NAME.x = str_replace(NAME.x, " city, Maryland", " city"))
+
+md_male_2023[3,2] <- "Baltimore County"
+md_male_2023[24,2] <- "Baltimore City"
+
+# rename column titles
+md_male_2023 <- md_male_2023 %>%
+  rename(
+    County = NAME.x,
+  )
+```
+
+Merge male and trump pct:
+```{r}
+male_v_trump <- merge(
+  u_rate_trump, md_male_2023, by = "County"
+)
+```
+
+Determine and visualize trump male percent correlation:
+```{r}
+#calculate correlation
+male_v_trump %>% summarize(cor(male_pct, trump_pct, method = "pearson"))
+
+#visualize correlation
+male_v_trump %>% 
+  ggplot() +
+  geom_point(aes(x=trump_pct, y=male_pct)) +
+  geom_smooth(aes(x=trump_pct, y=male_pct), method = "lm") +
+  geom_text(aes(x=trump_pct, y=male_pct, label=County), size = 3)
+```
+
+Create linear regression model for male percent and trump:
+```{r}
+model <- lm(`trump_pct` ~ `male_pct`, data = male_v_trump)
+
+summary(model)
+```
+
+### Multiple regression
+
+- median age - age_v_trump - median_age
+- pct white - white_v_trump - white_pct
+- pct male - male_v_trump - male_pct
+- income - income_v_trump - income
+
+Merge variable dataframes into one
+
+```{r}
+# rename the GEOID in white_v_trump
+white_v_trump <- white_v_trump %>%
+  rename(
+    GEOID = GEOID.x,
+  )
+
+#merge into one
+merge_1 <- merge(
+  income_v_trump, white_v_trump, by = "GEOID"
+)
+merge_2 <- merge(
+  age_v_trump, male_v_trump, by = "GEOID"
+)
+all_data <- merge(
+  merge_1, merge_2, by = "GEOID"
+)
+
+```
+
+
+Pre-mutliple-regression tests
+
+```{r}
+library(corrplot)
+
+# Create correlation matrix
+selected_vars <- all_data |> 
+  select(median_age, white_pct, male_pct, income, trump_pct.x.y, U_Rate.x.y)
+correlation_matrix <- cor(selected_vars)
+print(correlation_matrix)
+
+# Visualize correlation matrix
+corrplot(correlation_matrix, method = "circle")
+```
+
+run multiple regression
+
+```{r}
+mr_model_1 <- lm(trump_pct.x.y ~ median_age + white_pct + male_pct + income + U_Rate.x.y, data = all_data)
+summary(mr_model_1)
+
+mr_model_2 <- lm(trump_pct.x.y ~ white_pct + male_pct + income + U_Rate.x.y, data = all_data)
+summary(mr_model_2)
+
+mr_model_3 <- lm(trump_pct.x.y ~ white_pct + male_pct + income, data = all_data)
+summary(mr_model_3)
+
+mr_model_4 <- lm(trump_pct.x.y ~ white_pct + income, data = all_data)
+summary(mr_model_4)
+
+#if we take out male percent, the model only gets a few points lower, but the residuals go up
+
+
+# Create comparison chart
+model_names <- c("Full model", "Model 2", "Model 3", "Model 4")
+adj_r_squared <- c(summary(mr_model_1)$adj.r.squared,
+                   summary(mr_model_2)$adj.r.squared,
+                   summary(mr_model_3)$adj.r.squared,
+                   summary(mr_model_4)$adj.r.squared)
+
+model_comparison <- data.frame(Model = model_names, Adjusted_R_squared = adj_r_squared)
+ggplot(model_comparison, aes(x = reorder(Model, Adjusted_R_squared), y = Adjusted_R_squared)) +
+  geom_col(fill = "steelblue") +
+  coord_flip() +
+  labs(title = "Model Comparison by Adjusted R-squared",
+       x = "Model")
+```
+
+
+
