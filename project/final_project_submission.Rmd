@@ -1,0 +1,349 @@
+---
+title: "final_project_submission"
+output: html_document
+---
+
+########## Alex Taylor's Final Project for JOUR405 ##########
+
+This is my final project submission for JOUR405. The file is named "final_project_submission" because I have condensed and re-written some of the code in my original final project file, "final_project," to make it easier to read.
+
+
+
+### Set up
+
+Load necessary packages:
+```{r}
+library("tidyverse")
+library("tidycensus")
+knitr::opts_chunk$set(echo = TRUE)
+options(scipen = 999)
+```
+
+Load data:
+```{r}
+#load unemployment rate data for October of 2024 from the BLS website
+#I complied the data from the BLS website into a google sheet, then uploaded it as a CSV to my repository
+county_urate <- read_csv("https://raw.githubusercontent.com/awtaylor17/JOUR405_Spring25/refs/heads/main/project/JOUR405_URateDate_Compiled2.csv")
+
+#load election data provided to me by Derek Willis
+election_data <- read_csv("https://raw.githubusercontent.com/dwillis/jour405/refs/heads/main/data/md_pres_county.csv")
+
+#load demographic data from the Census Bureau’s 2023 ACS
+Sys.getenv("CENSUS_API_KEY")
+
+#retrieving the amount of people who identified as white alone in each county
+md_white_2023 <- get_acs(geography = "county",
+              variables = c("B02001_002"),
+              state = "MD",
+              year = 2023)
+
+#retrieving the amount of estimated income in each county
+md_income_2023 <- get_acs(geography = "county",
+              variables = c("B07411_001"),
+              state = "MD",
+              year = 2023)
+
+#retrieving the total population (for race) in each county
+md_racetotal_2023 <- get_acs(geography = "county",
+              variables = c("B02001_001"),
+              state = "MD",
+              year = 2023)
+
+#retrieving the median age in each county
+md_medianage_2023 <- get_acs(geography = "county",
+              variables = c("B01002_001"),
+              state = "MD",
+              year = 2023)
+
+#retrieving the number of males in each county
+md_male_2023 <- get_acs(geography = "county",
+              variables = c("B01001_002"),
+              state = "MD",
+              year = 2023)
+
+#retrieving the total population (for gender) in each county
+md_totalgender_2023 <- get_acs(geography = "county",
+              variables = c("B01001_001"),
+              state = "MD",
+              year = 2023)
+
+```
+
+While I could probably assume that md_racetotal_2023 and md_totalgender_2023 have the same values, I am using the separate data frames just to be safe. 
+
+Clean data and make it easier to interpret:
+```{r}
+#create trump_pct
+election_data <- election_data %>% 
+  mutate(
+    trump_pct = trump/total * 100
+  )
+
+#change estimate name to income
+md_income_2023 <- md_income_2023 %>% 
+  rename(
+    income = estimate
+  )
+
+#create male_pct
+md_male_2023 <- full_join(md_male_2023, md_totalgender_2023, by = "GEOID")
+
+md_male_2023 <- md_male_2023 %>%
+  mutate(
+    male_pct = estimate.x/estimate.y * 100
+  )
+
+#change estimate name to median age
+md_medianage_2023 <- md_medianage_2023 %>% 
+  rename(
+    median_age = estimate
+  )
+
+#create white_pct
+md_white_2023 <- full_join(md_white_2023, md_racetotal_2023, by = "GEOID")
+
+md_white_2023 <- md_white_2023 %>%
+  mutate(
+    white_pct = estimate.x/estimate.y * 100
+  )
+
+```
+
+Merge data into one data frame to make analysis easier:
+
+```{r}
+
+#select certain values to make the merged datafram less busy
+md_income_2023 <- md_income_2023 %>% 
+  select(
+    GEOID, NAME, income
+  )
+
+md_male_2023 <- md_male_2023 %>%
+  select(
+    GEOID, male_pct
+  )
+
+md_medianage_2023 <- md_medianage_2023 %>% 
+  select(
+    GEOID, median_age
+  )
+
+md_white_2023 <- md_white_2023 %>% 
+  select(
+    GEOID, white_pct
+  )
+
+#merge dataframes that have GEOID
+all_data <- full_join(md_income_2023, md_male_2023, by = "GEOID")
+all_data <- full_join(all_data, md_medianage_2023, by = "GEOID")
+all_data <- full_join(all_data, md_white_2023, by = "GEOID")
+
+#rename county values to match for merger
+all_data <- all_data %>%
+  mutate(NAME = str_replace(NAME, " County, Maryland", "")) |> 
+  mutate(NAME = str_replace(NAME, " city, Maryland", " City"))
+
+all_data <- all_data %>%
+  mutate(NAME = case_when(
+    NAME == "Baltimore" ~ "Baltimore County",
+    TRUE ~ NAME
+  ))
+
+all_data <- all_data %>%
+  mutate(NAME = case_when(
+    NAME == "St. Mary's" ~ "Saint Mary's",
+    TRUE ~ NAME
+  ))
+
+#rename column names to match for merger
+all_data <- all_data %>% 
+  rename(
+    County = NAME
+  )
+
+election_data <- election_data %>% 
+  rename(
+    County = jurisdiction
+  )
+
+#merge the unemployment rate and election data with all_data
+all_data <- full_join(all_data, county_urate, by = "County")
+all_data <- full_join(all_data, election_data, by = "County")
+
+```
+
+Note: Based on your suggestion to use mutate() and case_when() to rename values, I Googled the proper format and was shown the structure used above. That is also how I learned about the select() function.
+
+
+### Analysis
+
+## Descriptive Stats
+
+[ADD INTRO TO DESCRIPTIVE STATS]
+
+```{r}
+summary(election_data)
+```
+
+
+
+[ADD RESULTS OF DESCRIPTIVE STATS]
+
+## Analysis of Variables
+
+# Unemployment rate
+
+[ADD INTRO TO U-RATE]
+
+```{r}
+#calculate the correlation
+all_data %>% summarize(cor(U_Rate, trump_pct, method = "pearson"))
+
+#visualize the correlation
+all_data %>% 
+  ggplot() +
+  geom_point(aes(x=trump_pct, y=U_Rate)) +
+  geom_smooth(aes(x=trump_pct, y=U_Rate), method = "lm") +
+  geom_text(aes(x=trump_pct, y=U_Rate, label=County), size = 3)
+
+#calculate linear regression model
+summary(lm(`trump_pct` ~ `U_Rate`, data = all_data))
+
+```
+
+[ADD RESULTS OF U-RATE]
+
+
+# Percent white
+
+[ADD INTRO TO PCT WHITE]
+
+```{r}
+#calculate the correlation
+all_data %>% summarize(cor(white_pct, trump_pct, method = "pearson"))
+
+#visualize the correlation
+all_data %>% 
+  ggplot() +
+  geom_point(aes(x=trump_pct, y=white_pct)) +
+  geom_smooth(aes(x=trump_pct, y=white_pct), method = "lm") +
+  geom_text(aes(x=trump_pct, y=white_pct, label=County), size = 3)
+
+#calculate linear regression model
+summary(lm(`trump_pct` ~ `white_pct`, data = all_data))
+
+```
+
+[ADD RESULTS OF PCT WHITE]
+
+
+# Median age
+
+[ADD INTRO TO MEDIAN AGE]
+
+```{r}
+#calculate correlation
+all_data %>% summarize(cor(median_age, trump_pct, method = "pearson"))
+
+#visualize correlation
+all_data %>% 
+  ggplot() +
+  geom_point(aes(x=trump_pct, y=median_age)) +
+  geom_smooth(aes(x=trump_pct, y=median_age), method = "lm") +
+  geom_text(aes(x=trump_pct, y=median_age, label=County), size = 3)
+
+#calculate linear regression model
+summary(lm(`trump_pct` ~ `median_age`, data = all_data))
+```
+
+[ADD RESULTS OF MEDIAN AGE]
+
+
+# Percent male
+
+[ADD INTRO TO PCT MALE]
+
+```{r}
+#calculate correlation
+all_data %>% summarize(cor(male_pct, trump_pct, method = "pearson"))
+
+#visualize correlation
+all_data %>% 
+  ggplot() +
+  geom_point(aes(x=trump_pct, y=male_pct)) +
+  geom_smooth(aes(x=trump_pct, y=male_pct), method = "lm") +
+  geom_text(aes(x=trump_pct, y=male_pct, label=County), size = 3)
+
+#calculate linear regression model
+summary(lm(`trump_pct` ~ `male_pct`, data = all_data))
+
+```
+
+[ADD RESULTS OF PCT MALE]
+
+
+# Income
+
+[ADD INTRO TO INCOME]
+
+```{r}
+#calculate correlation
+all_data %>% summarize(cor(income, trump_pct, method = "pearson"))
+
+#visualize correlation
+all_data %>% 
+  ggplot() +
+  geom_point(aes(x=trump_pct, y=income)) +
+  geom_smooth(aes(x=trump_pct, y=income), method = "lm") +
+  geom_text(aes(x=trump_pct, y=income, label=County), size = 3)
+
+#calculate linear regression model
+summary(lm(`trump_pct` ~ `income`, data = all_data))
+
+```
+
+[ADD RESULTS OF INCOME]
+
+## Multiple Regression
+
+[ADD INTRO TO MULTIPLE REGRESSION]
+
+```{r}
+#create multiple regression models, steadily narrowing down the variables
+mr_model_1 <- lm(trump_pct ~ median_age + white_pct + male_pct + income + U_Rate, data = all_data)
+summary(mr_model_1)
+
+mr_model_2 <- lm(trump_pct ~ white_pct + male_pct + income + U_Rate, data = all_data)
+summary(mr_model_2)
+
+mr_model_3 <- lm(trump_pct ~ white_pct + male_pct + income, data = all_data)
+summary(mr_model_3)
+
+mr_model_4 <- lm(trump_pct ~ white_pct + income, data = all_data)
+summary(mr_model_4)
+
+
+#create comparison chart
+model_names <- c("Full model", "Model 2", "Model 3", "Model 4")
+adj_r_squared <- c(summary(mr_model_1)$adj.r.squared,
+                   summary(mr_model_2)$adj.r.squared,
+                   summary(mr_model_3)$adj.r.squared,
+                   summary(mr_model_4)$adj.r.squared)
+
+model_comparison <- data.frame(Model = model_names, Adjusted_R_squared = adj_r_squared)
+ggplot(model_comparison, aes(x = reorder(Model, Adjusted_R_squared), y = Adjusted_R_squared)) +
+  geom_col(fill = "steelblue") +
+  coord_flip() +
+  labs(title = "Model Comparison by Adjusted R-squared",
+       x = "Model")
+```
+
+
+[ADD RESULTS OF MULTIPLE REGRESSION]
+
+
+### Story Pitch
+
+[ADD STORY PITCH/FINAL STUFF]
+

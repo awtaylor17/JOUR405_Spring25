@@ -24,7 +24,7 @@ The last demographic variable I tested was median age. These results were simila
 Getting started:
 ```{r}
 library("tidyverse")
-library(tidycensus)
+library("tidycensus")
 ```
 
 
@@ -439,7 +439,7 @@ merge_1 <- merge(
 merge_2 <- merge(
   age_v_trump, male_v_trump, by = "GEOID"
 )
-all_data <- merge(
+all_data2 <- merge(
   merge_1, merge_2, by = "GEOID"
 )
 
@@ -452,7 +452,7 @@ Pre-mutliple-regression tests
 library(corrplot)
 
 # Create correlation matrix
-selected_vars <- all_data |> 
+selected_vars <- all_data2 |> 
   select(median_age, white_pct, male_pct, income, trump_pct.x.y, U_Rate.x.y)
 correlation_matrix <- cor(selected_vars)
 print(correlation_matrix)
@@ -464,16 +464,16 @@ corrplot(correlation_matrix, method = "circle")
 run multiple regression
 
 ```{r}
-mr_model_1 <- lm(trump_pct.x.y ~ median_age + white_pct + male_pct + income + U_Rate.x.y, data = all_data)
+mr_model_1 <- lm(trump_pct.x.y ~ median_age + white_pct + male_pct + income + U_Rate.x.y, data = all_data2)
 summary(mr_model_1)
 
-mr_model_2 <- lm(trump_pct.x.y ~ white_pct + male_pct + income + U_Rate.x.y, data = all_data)
+mr_model_2 <- lm(trump_pct.x.y ~ white_pct + male_pct + income + U_Rate.x.y, data = all_data2)
 summary(mr_model_2)
 
-mr_model_3 <- lm(trump_pct.x.y ~ white_pct + male_pct + income, data = all_data)
+mr_model_3 <- lm(trump_pct.x.y ~ white_pct + male_pct + income, data = all_data2)
 summary(mr_model_3)
 
-mr_model_4 <- lm(trump_pct.x.y ~ white_pct + income, data = all_data)
+mr_model_4 <- lm(trump_pct.x.y ~ white_pct + income, data = all_data2)
 summary(mr_model_4)
 
 #if we take out male percent, the model only gets a few points lower, but the residuals go up
